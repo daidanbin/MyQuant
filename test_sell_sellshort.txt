@@ -1,203 +1,399 @@
 //------------------------------------------------------------------------
-// ¼ò³Æ: test_sell_sellshort
-// Ãû³Æ: 
-// Àà±ğ: ¹«Ê½Ó¦ÓÃ
-// ÀàĞÍ: ÓÃ»§Ó¦ÓÃ
-// Êä³ö:
+
+// ç®€ç§°: test_sell_sellshort
+
+// åç§°: 
+
+// ç±»åˆ«: å…¬å¼åº”ç”¨
+
+// ç±»å‹: ç”¨æˆ·åº”ç”¨ 
+
+// è¾“å‡º:
+
 //------------------------------------------------------------------------
+
+
 
 Params
 
-	Numeric N(50); // ÖĞÖµ²¨¶¯·¶Î§
-	Numeric P(30); // ¹Òµ¥Æ½²Ö¼Û¸ñ¼ä¸ô
-	Numeric M(20); // ¼Ó²Ö¼ä¸ô
+
+
+	Numeric N(50); // ä¸­å€¼æ³¢åŠ¨èŒƒå›´
+
+	Numeric P(30); // æŒ‚å•å¹³ä»“ä»·æ ¼é—´éš”
+
+	Numeric M(20); // åŠ ä»“é—´éš”
+
 	
+
 	Numeric UpBand(1000);
+
 	Numeric LowBand(1000);
+
 	
+
 Vars
 
+
+
 	Numeric starttime(0.1340);
+
 	NumericSeries MidPrice(0);
+
 	
+
 	Numeric lots(1);
+
 	Numeric i(0);
+
 	
-	Numeric EntryTick(0);
+
+	NumericSeries EntryTick(0);
+
 	Numeric IndexLastEntry(0);
+
 	Numeric Odc(0);
+
 	
+
 Begin
 
+
+
 	Commentary("Time ="+Text(Time)); 
+
 	
+
 	MidPrice = DayAvgPrice();
 
+
+
 //----------------------------------------	
+
 If(BarStatus==0)
+
 {
 
-	SetGlobalVar(0,0); // ¼ÇÂ¼ÊÇ·ñµÚÒ»´Î¿ª²Ö
-	SetGlobalVar(1,0); // ¼ÇÂ¼¿ª²Ö¼Û¸ñ
-	SetGlobalVar(2,0); // ÊÇ·ñÒÑ¾­¹ÒÆ½²Öµ¥
-	SetGlobalVar(3,0); // ÊÇ·ñÒÑ¾­¹Ò¼Ó²Öµ¥
-	SetGlobalVar(4,0); // ¼ÇÂ¼ordercount
-	SetGlobalVar(5,0); // ¼ÇÂ¼½»Ò×tickcount
+
+
+	SetGlobalVar(0,0); // è®°å½•æ˜¯å¦ç¬¬ä¸€æ¬¡å¼€ä»“
+
+	SetGlobalVar(1,0); // è®°å½•å¼€ä»“ä»·æ ¼
+
+	SetGlobalVar(2,0); // æ˜¯å¦å·²ç»æŒ‚å¹³ä»“å•
+
+	SetGlobalVar(3,0); // æ˜¯å¦å·²ç»æŒ‚åŠ ä»“å•
+
+	SetGlobalVar(4,0); // è®°å½•ordercount
+
+	SetGlobalVar(5,0); // è®°å½•äº¤æ˜“tickcount
+
+	SetGlobalVar(6,0); // è®°å½•EntryTick
+	
+
+}
+
+
+
+If(BarStatus==2 And GetGlobalVar(0)==0 )
+
+{
+
+	Odc = A_GetOrderCount();
+
+	SetGlobalVar(4,Odc);
+	
 	
 }
 
-If(BarStatus==2 And GetGlobalVar(0)==0 )
-{
-	Odc = A_GetOrderCount();
-	SetGlobalVar(4,Odc);
-}
 
-SetGlobalVar(5,GetGlobalVar(5)+1);	
+
+	
+
+
+
 
 
 If(BarStatus==2 )
 {
+	SetGlobalVar(5,GetGlobalVar(5)+1);
+
 	If(GetGlobalVar(0)==0)
+
 	{
+
 	
+
 		//A_SendOrder(Enum_Buy,Enum_Entry,lots,Q_AskPrice);
+
 		//A_SendOrder(Enum_Sell,Enum_Entry,lots,Q_BidPrice);
+
 		//SetGlobalVar(0,1);  
+
 	
-		// A_OrderStatus=1 ÒÑ±¨
-		// A_OrderStatus=3 È«²¿³É½»
-		// A_OrderStatus=4 ÒÑ³·µ¥
+
+		// A_OrderStatus=1 å·²æŠ¥
+
+		// A_OrderStatus=3 å…¨éƒ¨æˆäº¤
+
+		// A_OrderStatus=4 å·²æ’¤å•
+
 		
+
 		//Commentary("Orderstatus ="+Text(A_OrderStatus(0))); 
+
 		//Commentary("A_OrderContractNo ="+A_OrderContractNo(0)); 
+
 		
+
 		//Commentary("A_GetOrderCount() = "+Text(A_GetOrderCount()));
+
 		
+
 		//Commentary("A_OrderFilledPrice() = "+Text(A_OrderFilledPrice(2)));
+
 		
+
 	}
+
 }
+
+
+
+
+
 
 
 
 
 If( Time>=0.0910 )
+
 {
+
 //	PlotNumeric("MidPrice",MidPrice);
+
 //	PlotNumeric("Up", MidPrice[1]+ N);
+
 //	PlotNumeric("Dn", MidPrice[1]- N);
 
+
+
 	PlotNumeric("Up", UpBand );
+
 	PlotNumeric("Dn", LowBand );
+
 }
 
 
-If(Time>=0.0910)
+
+
+
+If(Time>=0.0910 And BarStatus==2 )
+
 {		
-	If( BarStatus==2 and Q_Last>=UpBand And GetGlobalVar(0)==0 And Q_Last!=InvalidNumeric )	
+
+	If( Q_Last>=UpBand And GetGlobalVar(0)==0  )	
+
 	{
+
 	
+
 		A_SendOrder( Enum_Sell,Enum_Entry,lots,Q_BidPrice() );
+
 		SetGlobalVar(0,1);
-		SetGlobalVar(1,Q_BidPrice()); // µÚÒ»±Ê¿ª²Ö¼Û¸ñ	
+
+		SetGlobalVar(1,Q_BidPrice()); // ç¬¬ä¸€ç¬”å¼€ä»“ä»·æ ¼	
+
 		
-		EntryTick = GetGlobalVar(5);
+
+		SetGlobalVar(6,GetGlobalVar(5)); // è¿›åœºtick
+
 		SetGlobalVar( 4, GetGlobalVar(4)+1 );
+
 		
+
 		Return;
+
 		
+
 	}
+
 	
 	
 	IndexLastEntry = A_GetOrderCount()-GetGlobalVar(4); 
+
 	
-	If( A_OrderStatus(IndexLastEntry)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==0 And GetGlobalVar(5)>=EntryTick+1 ) // µÚÒ»±Ê¿ª²Ö£¬È«²¿³É½»£¬ÏÈ¹ÒÆ½²Öµ¥
+
+	If( A_OrderStatus(IndexLastEntry)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==0 And GetGlobalVar(5)>=GetGlobalVar(6)+10 ) // ç¬¬ä¸€ç¬”å¼€ä»“ï¼Œå…¨éƒ¨æˆäº¤ï¼Œå…ˆæŒ‚å¹³ä»“å•
+
 	{
-		
+
+
 		A_SendOrder(Enum_Buy,Enum_Exit,lots,GetGlobalVar(1) - P );
+
 		
-		SetGlobalVar(2,1);   // ÒÑ¹ÒÆ½²Öµ¥£»
+
+		SetGlobalVar(2,1);   // å·²æŒ‚å¹³ä»“å•ï¼›
+
 		
-		EntryTick = GetGlobalVar(5);
+
+		SetGlobalVar(6,GetGlobalVar(5)); // è¿›åœºtick
+
 		
+
 		Return;
+
 		
+
 	}
 	
 	
-	If( GetGlobalVar(2)==1 And GetGlobalVar(3)==0 And GetGlobalVar(5)>=EntryTick+1 ) // ¹Ò¼Ó²Öµ¥
+	
+	If( GetGlobalVar(2)==1 And GetGlobalVar(3)==0 And GetGlobalVar(5)>=GetGlobalVar(6)+10 ) // æŒ‚åŠ ä»“å•
+
 	{
+
 		A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) + M );
-		SetGlobalVar(3,1);   // ÒÑ¹Ò¼Ó²Öµ¥
-		EntryTick = GetGlobalVar(5);
+
+		SetGlobalVar(3,1);   // å·²æŒ‚åŠ ä»“å•
+
+		SetGlobalVar(6,GetGlobalVar(5)); // è¿›åœºtick
+
 		Return;
+
 	}
+
 	
-	If( A_OrderStatus(1)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+1 ) // Æ½²Öµ¥³É½»
+	
+	If( A_OrderStatus(IndexLastEntry-1)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=GetGlobalVar(6)+10 ) // å¹³ä»“å•æˆäº¤
+
 	{
+
 		
-		// ÏÈ³·ÏúÎ´³É½»µ¥
-		A_DeleteOrder(A_OpenOrderContractNo());  // ³·Ïú¼Ó²Öµ¥
+
+		// å…ˆæ’¤é”€æœªæˆäº¤å•
+		A_DeleteOrder(A_OpenOrderContractNo());  // æ’¤é”€åŠ ä»“å•
+
 		
+
 		A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) );
-		
-		
+
+
 		SetGlobalVar(0,1);
+
 		SetGlobalVar(2,0);
+
 		SetGlobalVar(3,0);
+
 		
-		EntryTick = GetGlobalVar(5);
+
+		SetGlobalVar(6,GetGlobalVar(5)); // è¿›åœºtick
+
 		SetGlobalVar( 4, GetGlobalVar(4)+1 );
+
 		
 		Return;
+
 		
+
 	}
-	
-	
-	If( A_OrderStatus(0)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+1 ) // ¼Ó²Öµ¥³É½»
+
+	/*
+	If( A_OrderStatus(IndexLastEntry-2)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+10 ) // åŠ ä»“å•æˆäº¤
+
 	{
+
 	
+
 		SetGlobalVar(1, GetGlobalVar(1) + M );
+
 		
+
 		SetGlobalVar(2,0);
+
 		SetGlobalVar(3,0);
+
 		
+
 		SetGlobalVar( 4, GetGlobalVar(4)+1 );
+
 		
+
 		EntryTick = GetGlobalVar(5);
+
+		
 		
 	}
 	
+	*/
+	
+
+
 }
+
+
+
+
+
 
 
 
 
 If(BarStatus==2)
+
 {
 
 Commentary("IndexLastEntry ="+Text(IndexLastEntry));
 
-Commentary("Orderstatus(0) ="+Text(A_OrderStatus(0)));
+Commentary("Orderstatus(0) ="+Text(A_OrderStatus(0))); 
+
 Commentary("Orderstatus(1) ="+Text(A_OrderStatus(1)));
+
+Commentary("Orderstatus(2) ="+Text(A_OrderStatus(2)));
+
 Commentary("A_GetOrderCount ="+Text(A_GetOrderCount()));
 
+
+
 Commentary("Globalvar(0) = "+Text(GetGlobalVar(0)));
+
 Commentary("Globalvar(1) = "+Text(GetGlobalVar(1)));
+
 Commentary("Globalvar(2) = "+Text(GetGlobalVar(2)));
+
 Commentary("Globalvar(3) = "+Text(GetGlobalVar(3)));
+
 Commentary("Globalvar(4) = "+Text(GetGlobalVar(4)));
- 
+
+Commentary("Globalvar(5) = "+Text(GetGlobalVar(5))); 
+
+Commentary("Globalvar(6) = "+Text(GetGlobalVar(6))); 
+
 }
+
+
+
 
 
 End
 
 
+
+
+
 //------------------------------------------------------------------------
-// ±àÒë°æ±¾	GS2015.12.25
-// ÓÃ»§°æ±¾	2019/08/02 13:06:41
-// °æÈ¨ËùÓĞ	daidanbin
-// ¸ü¸ÄÉùÃ÷	TradeBlazer Software±£Áô¶ÔTradeBlazerÆ½Ì¨
-//			Ã¿Ò»°æ±¾µÄTradeBlazer¹«Ê½ĞŞ¸ÄºÍÖØĞ´µÄÈ¨Àû
+
+// ç¼–è¯‘ç‰ˆæœ¬	GS2015.12.25
+
+// ç”¨æˆ·ç‰ˆæœ¬	2019/08/02 13:06:41
+
+// ç‰ˆæƒæ‰€æœ‰	daidanbin
+
+// æ›´æ”¹å£°æ˜	TradeBlazer Softwareä¿ç•™å¯¹TradeBlazerå¹³å°
+
+//			æ¯ä¸€ç‰ˆæœ¬çš„TradeBlazerå…¬å¼ä¿®æ”¹å’Œé‡å†™çš„æƒåˆ©
+
 //------------------------------------------------------------------------
+
+
+		
