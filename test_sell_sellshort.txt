@@ -12,6 +12,8 @@ Params
 	Numeric P(30); // 挂单平仓价格间隔
 	Numeric M(20); // 加仓间隔
 	
+	Numeric UpBand(1000);
+	Numeric LowBand(1000);
 	
 Vars
 
@@ -22,8 +24,8 @@ Vars
 	Numeric i(0);
 	
 	Numeric EntryTick(0);
-	NumericSeries EntryOrderCount(0);
-	Numeric ThisOrderCount(0);
+	Numeric IndexLastEntry(0);
+	Numeric Odc(0);
 	
 Begin
 
@@ -39,10 +41,17 @@ If(BarStatus==0)
 	SetGlobalVar(1,0); // 记录开仓价格
 	SetGlobalVar(2,0); // 是否已经挂平仓单
 	SetGlobalVar(3,0); // 是否已经挂加仓单
-	SetGlobalVar(4,0); // 第一笔开仓是否成交
-	SetGlobalVar(5,0); // 记录交易tick
+	SetGlobalVar(4,0); // 记录ordercount
+	SetGlobalVar(5,0); // 记录交易tickcount
 	
 }
+
+If(BarStatus==2 And GetGlobalVar(0)==0 )
+{
+	Odc = A_GetOrderCount();
+	SetGlobalVar(4,Odc);
+}
+
 SetGlobalVar(5,GetGlobalVar(5)+1);	
 
 
@@ -74,105 +83,111 @@ If(BarStatus==2 )
 
 If( Time>=0.0910 )
 {
-	PlotNumeric("MidPrice",MidPrice);
-	PlotNumeric("Up", MidPrice[1]+ N);
-	PlotNumeric("Dn", MidPrice[1]- N);
+//	PlotNumeric("MidPrice",MidPrice);
+//	PlotNumeric("Up", MidPrice[1]+ N);
+//	PlotNumeric("Dn", MidPrice[1]- N);
+
+	PlotNumeric("Up", UpBand );
+	PlotNumeric("Dn", LowBand );
 }
+
 
 If(Time>=0.0910)
 {		
-	If( BarStatus==2 And Q_Last>=MidPrice[1]+ N And GetGlobalVar(0)==0 And Q_Last!=InvalidNumeric )	
+	If( BarStatus==2 and Q_Last>=UpBand And GetGlobalVar(0)==0 And Q_Last!=InvalidNumeric )	
 	{
+	
 		A_SendOrder( Enum_Sell,Enum_Entry,lots,Q_BidPrice() );
 		SetGlobalVar(0,1);
 		SetGlobalVar(1,Q_BidPrice()); // 第一笔开仓价格	
 		
-		EntryOrderCount = A_GetOrderCount();
+		EntryTick = GetGlobalVar(5);
+		SetGlobalVar( 4, GetGlobalVar(4)+1 );
 		
 		Return;
+		
 	}
 	
-	If( A_OrderStatus(0)==3 ) // 第一笔开仓，全部成交
+	
+	IndexLastEntry = A_GetOrderCount()-GetGlobalVar(4); 
+	
+	If( A_OrderStatus(IndexLastEntry)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==0 And GetGlobalVar(5)>=EntryTick+1 ) // 第一笔开仓，全部成交，先挂平仓单
 	{
-		// 先挂平仓单
 		
-		If( GetGlobalVar(2)==0 ) // 没有挂平仓单
-		{
-			A_SendOrder(Enum_Buy,Enum_Exit,lots,GetGlobalVar(1) - P );
-			SetGlobalVar(2,1);   // 已挂平仓单；
-		}
+		A_SendOrder(Enum_Buy,Enum_Exit,lots,GetGlobalVar(1) - P );
 		
-		If( GetGlobalVar(3)==0 ) // 没有挂加仓单
-		{
-			A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) + M );
-			SetGlobalVar(3,1);   // 已挂加仓单
-		}
-			SetGlobalVar(4,1);
+		SetGlobalVar(2,1);   // 已挂平仓单；
 		
 		EntryTick = GetGlobalVar(5);
 		
 		Return;
+		
 	}
 	
-	ThisOrderCount = A_GetOrderCount();
 	
-	If( A_OrderStatus(1)==3 And GetGlobalVar(2)==1 And GetGlobalVar(5)>=EntryTick+3 And ThisOrderCount>=EntryOrderCount+2 ) // 平仓单成交
+	If( GetGlobalVar(2)==1 And GetGlobalVar(3)==0 And GetGlobalVar(5)>=EntryTick+1 ) // 挂加仓单
+	{
+		A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) + M );
+		SetGlobalVar(3,1);   // 已挂加仓单
+		EntryTick = GetGlobalVar(5);
+		Return;
+	}
+	
+	If( A_OrderStatus(1)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+1 ) // 平仓单成交
 	{
 		
 		// 先撤销未成交单
-		A_DeleteOrder(A_OpenOrderContractNo());
+		A_DeleteOrder(A_OpenOrderContractNo());  // 撤销加仓单
 		
 		A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) );
+		
+		
+		SetGlobalVar(0,1);
+		SetGlobalVar(2,0);
+		SetGlobalVar(3,0);
+		
+		EntryTick = GetGlobalVar(5);
+		SetGlobalVar( 4, GetGlobalVar(4)+1 );
+		
+		Return;
+		
+	}
+	
+	
+	If( A_OrderStatus(0)==3 And GetGlobalVar(0)==1 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+1 ) // 加仓单成交
+	{
+	
+		SetGlobalVar(1, GetGlobalVar(1) + M );
 		
 		SetGlobalVar(2,0);
 		SetGlobalVar(3,0);
 		
-		Return;
-	}
-	
-	
-	If( A_OrderStatus(0)==3 And GetGlobalVar(2)==1 And GetGlobalVar(3)==1 And GetGlobalVar(5)>=EntryTick+3 And ThisOrderCount>=EntryOrderCount+2 ) // 加仓单成交
-	{
-
-		// 先挂平仓单
-		
-		
-		
-		SetGlobalVar(1, GetGlobalVar(1) + M );
-		
-		A_SendOrder(Enum_Buy,Enum_Exit,lots,GetGlobalVar(1) - P );
-		SetGlobalVar(2,1); // 已挂平仓单；
-		
-		A_SendOrder(Enum_Sell,Enum_Entry,lots,GetGlobalVar(1) + M );
-		SetGlobalVar(3,1);  // 已挂加仓单 
+		SetGlobalVar( 4, GetGlobalVar(4)+1 );
 		
 		EntryTick = GetGlobalVar(5);
-		Return;
-		
 		
 	}
 	
-	
-	
-	
 }
+
+
+
 
 If(BarStatus==2)
 {
 
-PlotString("order",Text(A_GetOrderCount), High+50,white );
-
+Commentary("IndexLastEntry ="+Text(IndexLastEntry));
 
 Commentary("Orderstatus(0) ="+Text(A_OrderStatus(0)));
 Commentary("Orderstatus(1) ="+Text(A_OrderStatus(1)));
-Commentary("A_GetOrderCount ="+Text(A_GetOrderCount));
+Commentary("A_GetOrderCount ="+Text(A_GetOrderCount()));
 
 Commentary("Globalvar(0) = "+Text(GetGlobalVar(0)));
 Commentary("Globalvar(1) = "+Text(GetGlobalVar(1)));
 Commentary("Globalvar(2) = "+Text(GetGlobalVar(2)));
 Commentary("Globalvar(3) = "+Text(GetGlobalVar(3)));
-
-
+Commentary("Globalvar(4) = "+Text(GetGlobalVar(4)));
+ 
 }
 
 
